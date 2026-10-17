@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "additionalDirectories": [
+      "/Users/romanshuplov/atlantida/radio-atlantida-backend",
+      "/Users/romanshuplov/atlantida/radio-atlantida-frontend",
+      "/Users/romanshuplov/atlantida/radio-atlantida-deploy"
+    ],
+    "allow": [
+      "Bash(cp * /Users/romanshuplov/atlantida/radio-atlantida-backend/docs/*)",
+      "Bash(cp * /Users/romanshuplov/atlantida/radio-atlantida-frontend/docs/*)",
+      "Bash(cp * /Users/romanshuplov/atlantida/radio-atlantida-deploy/docs/*)",
+      "Edit(//Users/romanshuplov/atlantida/radio-atlantida-backend/docs/**)",
+      "Edit(//Users/romanshuplov/atlantida/radio-atlantida-backend/README.md)",
+      "Edit(//Users/romanshuplov/atlantida/radio-atlantida-backend/CLAUDE.md)",
+      "Edit(//Users/romanshuplov/atlantida/radio-atlantida-frontend/docs/**)",
+      "Edit(//Users/romanshuplov/atlantida/radio-atlantida-frontend/README.md)",
+      "Edit(//Users/romanshuplov/atlantida/radio-atlantida-frontend/CLAUDE.md)",
+      "Edit(//Users/romanshuplov/atlantida/radio-atlantida-deploy/docs/**)",
+      "Edit(//Users/romanshuplov/atlantida/radio-atlantida-deploy/README.md)",
+      "Edit(//Users/romanshuplov/atlantida/radio-atlantida-deploy/CLAUDE.md)"
+    ]
+  }
+}
