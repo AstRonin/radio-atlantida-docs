@@ -38,9 +38,9 @@ docker compose -f docker-compose.dev.yml --profile app up --build
 
 Migrations live in `internal/migrations` as `NNNN_name.up.sql`, are embedded in the binary, and are forward-only: there are no down files and no `migrate down`. An applied migration is never edited; a fix is a new migration (expand and contract, §9.2 of `docs/tech-design.md`).
 
-- `backend migrate up` needs only `DATABASE_URL`. It logs each applied version and exits non-zero on failure.
-- A database newer than the binary (after a rollback to an earlier release) is accepted with a warning, so the older `backend` still starts.
-- A "dirty" state means a migration failed part-way. Restore the pre-update dump (`update.bat restore` in production; in development, recreate the `pgdata` volume) and ship a fixed migration.
+- `backend migrate up` needs only `DATABASE_URL`. It logs each applied version and exits non-zero on failure: `4` when a migration failed and PostgreSQL rolled it back (the version is reset, the database is clean), `5` when the database is dirty, `1` when nothing was changed. Every file runs in one transaction; the rules are in `CLAUDE.md` (PostgreSQL and SQL).
+- A database newer than the binary (after a rollback to an earlier release) is accepted with a warning, so the older `backend` still starts, unless the schema's `min_app_version` (table `schema_compat`) is above the binary's version: then `backend serve` refuses to start. `backend migrate check` prints the compatibility as JSON (exit `3` when incompatible).
+- A "dirty" state means a non-transactional migration failed part-way, or the outcome is unknown. In production the deploy tool restores the pre-update dump by itself; in development, recreate the `pgdata` volume. Then ship a fixed migration.
 
 ### Host names for `make run`
 
@@ -58,7 +58,7 @@ Only these come from the environment (or `.env`, which never overrides variables
 |----------|----------|---------|
 | `DATABASE_URL` | yes | PostgreSQL connection string |
 | `MEDIA_ROOT` | yes | Directory with the audio files |
-| `LOG_ROOT` | yes | Directory for daily logs `app-YYYY-MM-DD.log` (UTC; kept for the `retention.log_days` setting, default 10) |
+| `LOKI_URL` | no | Base URL of Loki (`http://127.0.0.1:3100` on the dev stack); the backend pushes its log lines there. Empty turns the push off |
 | `HTTP_ADDR` | no | Listen address, default `127.0.0.1:8090` |
 | `ICECAST_SOURCE_PASSWORD`, `LIQUIDSOAP_CONTROL_USER`, `LIQUIDSOAP_CONTROL_PASSWORD` | later phases | Secrets; never logged or returned by the API (`GET /api/settings/secrets` reports only whether each is set) |
 
