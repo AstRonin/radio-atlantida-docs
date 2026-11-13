@@ -18,7 +18,7 @@ backend and frontend run as prebuilt images from GitHub Container Registry.
 | `docker-compose.yml` | the production stack; infrastructure images pinned literally, application images by tag and digest from `runtime/applied.env` |
 | `release.env` | the release this repository installs (`BACKEND_TAG`, `BACKEND_DIGEST`, `FRONTEND_TAG`, `FRONTEND_DIGEST`); a station release is a PR that changes it |
 | `.env.example` | the template of the station's `.env` (written by `radioctl first-run`, never committed) |
-| `config/` | copies of the backend's `dev/` files at the release: `liquidsoap/radio.liq` (+ `production.patch`), `grafana/`, `loki/`, `alloy/`; `backend-source.env` records the backend commit |
+| `config/` | copies of the backend's `dev/` files at the release: `liquidsoap/radio.liq` (+ `production.patch`), `grafana/`, `loki/`, `alloy/`; `backend-source.env` records the backend commit. Also this repository's own `stream-defaults.json`: the stream settings `radioctl first-run` proposes (the current Icecast server; the panel settings are the truth afterwards) |
 | `install.bat`, `install.ps1` | the Windows half of the host install (Windows PowerShell 5.1) |
 | `install/` | the Linux half: `setup-distro.sh`, `wsl.conf`, `radio-keepalive`, the systemd units, `versions.env` (pinned Ubuntu rootfs, Docker Engine, Compose, buildx, WSL) |
 | `update.bat`, `bin/radioctl` | the update tool (bash, inside the WSL distribution) |
@@ -49,7 +49,7 @@ same way on the Mac (bash, Docker; the Liquidsoap job also needs Go).
 | | `scripts/check-config.sh` | `loki -verify-config`, `alloy validate`, `alloy fmt` equal to the file (the pinned images, as the backend CI); Grafana provisioning YAML parses, dashboard JSON parses, every data source uid a dashboard uses is provisioned |
 | `release` (ubuntu) | `scripts/check-release.sh` | tags X.Y.Z, at least 1.0.0, same MAJOR.MINOR; digests set once the backend tag exists (a warning before the first release); with digests, both Git tags exist; with the `GHCR_USER` variable and `GHCR_READ_TOKEN` secret, each digest is the tag's manifest list digest in GHCR |
 | `backend-sync` (ubuntu) | `scripts/check-backend-sync.sh` | `config/` equals the backend's `dev/` at the backend ref (the script with `production.patch`), the contract header, the image pins equal `docker-compose.dev.yml` and `dev/liqsmoke/compose.yml` |
-| `liquidsoap` (ubuntu, Go from the backend's `go.mod`) | `tests/liquidsoap/run.sh` | `liquidsoap --check` in the pinned image, then the backend's smoke tool (`dev/liqsmoke`) at the backend ref: every codec x channels x sample rate, the encoder limits, TLS, restart from the state file |
+| `liquidsoap` (ubuntu, Go from the backend's `go.mod`) | `tests/liquidsoap/run.sh` | `liquidsoap --check` in the pinned image, then the backend's smoke tool (`dev/liqsmoke`) at the backend ref: every codec x channels x sample rate, the encoder limits, rapid output switches (4b), TLS, restart from the state file, the crash-loop guard (7) |
 | `radioctl` (ubuntu) | `tests/radioctl/run.sh` | the bats tests of `bin/radioctl` (bats-core 1.11.1; docker, git, the clock stubbed) |
 | `distro` (ubuntu) | `tests/distro/run.sh`, `tests/distro/run.sh --with-apt` | `setup-distro.sh` twice in `ubuntu:24.04` (files, users, units), `systemd-analyze verify` of the units; then the pinned Docker apt install (key, pin, hold) |
 | `versions` (ubuntu) | `scripts/check-versions.sh --download` | `install/versions.env`: the rootfs URL answers, `SHA256SUMS` lists the pinned checksum, the downloaded file has it; Docker's apt key fingerprint; every pinned package version exists for noble amd64 |
@@ -122,8 +122,8 @@ Environment only, never `.env`: `COMPOSE_PROJECT_NAME`,
 `RADIOCTL_BACKEND_IMAGE`, `RADIOCTL_FRONTEND_IMAGE` (a test registry),
 `RADIOCTL_COMPOSE_OVERRIDE` (an extra compose file, e.g.
 `tests/dryrun/compose.override.yml`), `RADIOCTL_STREAM_OVERRIDE` (a JSON
-object merged over the first-run stream settings; the cut-over then expects
-it), `RADIOCTL_HEALTH_TIMEOUT`, `RADIOCTL_LOCK_WAIT`, `RADIOCTL_NET_DEV`,
+object merged over `config/stream-defaults.json`, the stream settings the
+first run proposes; the cut-over uses whatever the panel says), `RADIOCTL_HEALTH_TIMEOUT`, `RADIOCTL_LOCK_WAIT`, `RADIOCTL_NET_DEV`,
 `RADIOCTL_FAKE_CLOCK` and the other test switches listed at the top of
 `bin/radioctl`. `DOCKER_DEFAULT_PLATFORM=linux/amd64` forces amd64 images
 for a parity run.
