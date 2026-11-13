@@ -32,6 +32,12 @@ Good practices expected:
 Bad practices to flag:
 - `panic` in request paths, `init()` side effects, global DB handles, string-concatenated SQL, ignoring `rows.Err()` / not closing rows, missing transaction boundaries, fat handlers with business logic, interfaces declared next to implementations "just in case", huge packages like `utils`/`common`.
 
+## Accepted project decisions (do not flag as problems)
+
+- **GORM and pgx side by side.** Simple REST CRUD goes through GORM; complex queries go through pgx. Do not recommend removing either. Do flag code that breaks this split (for example complex raw SQL written through `gorm.Raw` instead of pgx).
+- **No authentication.** By design (`tech-design.md` §6, §10): one manager, the API is bound to localhost or a private network. Flag only code that would expose the API beyond that.
+- **Up-only migrations.** Intentional, with a downgrade guard and forward fixes. Do not recommend down migrations.
+
 ## Output
 
 Return in Russian, concise:
