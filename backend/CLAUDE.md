@@ -66,8 +66,8 @@ Release: push an annotated tag `vX.Y.Z` from `main` whose message has exactly on
 cmd/backend/          subcommand dispatch (main.go) and serve wiring
 internal/
   config/             env config (caarlos0/env + godotenv); the only place that reads env
-  settings/           admin settings: typed registry (defaults, limits, apply mode, secrets), Service (Set, SetMany: batch all or nothing), Value/OnChange, Guard (checks against other data before a save), Check (cross-key rules on the merged View)
-  streamformat/       encoder limits of the pinned Liquidsoap (Check); used by the settings check and dev/liqsmoke; no SQL
+  settings/           admin settings: typed registry (defaults, limits, apply mode, secrets), Service (Set, SetMany: batch all or nothing), Value/OnChange, Guard (checks against other data before a save), Check (cross-key rules on the merged View); CheckEncoderLimits (stream.* format within the encoder limits, through streamformat)
+  streamformat/       encoder limits of the pinned Liquidsoap (Check); used by settings.CheckEncoderLimits and dev/liqsmoke; imports nothing from internal/; no SQL
   logging/            slog JSON, components, secret masking, async writer, Loki push (LokiSink; the backend writes no log files)
   db/                 pgx pool (UTC session, timeouts), GORM on the same pool, DB.WithTx (one Tx for pgx and GORM), ConstraintError, CollectOne/CollectAll
   dbtest/             integration-test helpers: PostgreSQL container, migrated DB (build tag integration)
@@ -85,7 +85,7 @@ internal/
   validation/         validation.Error: per-field refusals of domain services (rule → field code in problemFor)
   logsearch/          log search in Loki (GET /api/logs): query model, validation, LogQL builder, cursor, Loki HTTP client; no SQL
   library/            playlist types, playlists (placement rule in clocks), artists, tracks; track preview; *InUseError names what blocks a delete; title rule, reviewed mark, bulk rename; cue points and fades (SetCue, Cue.Check), usage marks (next planned, on air)
-  playrules/          play rules (window, weekdays, track and artist intervals capped at the play log retention, max per hour) and their track/playlist targets
+  playrules/          play rules (window, weekdays, track and artist intervals capped at the play log retention, max per hour) and their track/playlist targets; GuardRetention (settings guard: the play log retention not shorter than the longest interval)
   clocks/             clock templates: playlists with placement rules (EffectiveRule), timed inserts, Check (field validation), one-step save, dry check warnings
   grid/               grid slots (station local weekday/hour/dates), assign/unassign with trim/split/delete, Schedule, Hours, ClockHours
   rotation/           track plan: Build (pure, seeded: insert anchors and chains, rule slots, weighted fill, best fit and crossing, play rules, emergency), Service.Sync (missing/stale hours, plan_hours), one-time inserts (AddInsert, RemoveInsert, Reschedule; hour_inserts survive rebuilds), Sample (the hour of a clock save), planner queue for clock_build, hour_insert, and reschedule
@@ -98,7 +98,7 @@ internal/
   ingest/             import of a folder in place (folders and files with counts and statuses, title and artist from tags or the file name, originals of .optimal copies skipped), analysis against the broadcast standard (quality issues), transcodes (Fix loudness, Optimize; replace or .optimal copy); one media operation at a time on its worker; cached track waveforms (beside the operations, two decodes at a time)
   repository/         the only place with SQL (§5.1): one package per domain, same name as the domain
     operations/ retention/ jobs/ settings/         (jobs: the advisory locks; settings: GORM)
-    library/                                       (GORM; one store per aggregate)
+    library/                                       (GORM; one store per aggregate; TrackQueries is pgx: list, stats, usage, delete of unreferenced, planned/missed hours)
     playrules/                                     (pgx: time and smallint[] columns, array-parameter link sets)
     clocks/ grid/                                  (GORM CRUD; clocks.CheckStore is pgx for the dry check reads)
     rotation/                                      (pgx: library snapshot, history window, plan hours, CopyFrom of items, hour inserts)
