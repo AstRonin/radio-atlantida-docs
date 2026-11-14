@@ -6,7 +6,7 @@ Depends on `backend/docs/artists-paging-plan.md`. The backend adds `sort` (`name
 
 ## Goal
 
-1. The Artists page is paged and sortable by name and by track count, like the Library page (`docs/f18-library-pagination-sort-plan.md`).
+1. The Artists page is paged and sortable by name and by track count, like the Library page (`radio-atlantida-docs/archive/frontend/f18-library-pagination-sort-plan.md`).
 2. An artist with tracks cannot be deleted. The Delete button is disabled up front with a tooltip, and the track count links to the artist's tracks in Library.
 3. The artist picker no longer loads every artist. It searches on the server, at most 50 results.
 4. Library can be opened filtered by artist (`?artist_id=<id>`) and has an artist filter.

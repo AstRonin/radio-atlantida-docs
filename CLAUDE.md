@@ -6,6 +6,7 @@ This repository is the central copy of the project documents. Sources: `radio-at
 
 - `backend/`, `frontend/`, `deploy/` hold each source's documents under their original relative paths (`docs/...`, `README.md`, `CLAUDE.md`).
 - Shared documents that are identical across sources live once, at the repository root: `base.md`, `tech-design.md`.
+- `archive/` holds implemented plans removed from the sources (`archive/backend/`, `archive/frontend/`; see `archive/README.md`). It is not pulled or pushed. Do not restore archived files to the sources.
 - Do not keep the same document in more than one folder. Before storing a copy, check its hash against the other sources. If the copies are identical, store one copy at the root (or in one agreed place) and remove the others.
 - If the copies differ, do not pick one silently. Show the difference and ask the developer which version to keep.
 

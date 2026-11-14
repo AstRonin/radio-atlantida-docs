@@ -1,7 +1,7 @@
 # Library Reload on Playout Events Plan (radio-atlantida-frontend)
 
 Status: Done (verified 2026-11-15). Commit: f0cefed.
-Based on: `docs/f20-track-cue-editor-plan.md` (usage marks), `docs/f18-library-pagination-sort-plan.md` (decision 8), backend `docs/phase-17-plan.md`, `docs/phase-22-plan.md`
+Based on: `radio-atlantida-docs/archive/frontend/f20-track-cue-editor-plan.md` (usage marks), `radio-atlantida-docs/archive/frontend/f18-library-pagination-sort-plan.md` (decision 8), `radio-atlantida-docs/archive/backend/phase-17-plan.md`, `docs/phase-22-plan.md`
 Last updated: 2026-11-10
 
 ## 1. Goal

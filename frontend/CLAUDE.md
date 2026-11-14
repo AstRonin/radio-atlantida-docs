@@ -37,14 +37,9 @@ streams it, and PostgreSQL stores the data.
 2. `docs/tech-design.md`: the technical design. **It is the authority.** §6 (API, help, validation,
    settings, track preview), §6.4 (client generation), and §10 (time and logging) matter most.
 3. `docs/frontend-init-plan.md`: the task list of F1 to F5. Later phases have their own plan in
-   `docs/` (F6: `docs/f6-clocks-grid-plan.md`, F7: `docs/f7-rotation-views-plan.md`, F8:
-   `docs/f8-live-control-plan.md`, F9: `docs/f9-outages-missed-plan.md`, F10:
-   `docs/f10-import-plan.md`, F11: `docs/f11-logs-plan.md`, F12: `docs/f12-release-plan.md`,
-   F13: `docs/f13-grafana-link-plan.md`, F14: `docs/f14-broadcast-status-plan.md`, F15:
-   `docs/f15-air-window-plan.md`, F16: `docs/f16-import-in-place-plan.md`, F17:
-   `docs/f17-bulk-delete-plan.md`, F18: `docs/f18-library-pagination-sort-plan.md`, F19:
-   `docs/f19-track-titles-review-weekdays-plan.md`, F20: `docs/f20-track-cue-editor-plan.md`, F21:
-   `docs/f21-playlist-rules-clock-plan.md`), and `docs/deploy-prereqs-plan.md` (deploy
+   `docs/` (F12: `docs/f12-release-plan.md`, F21: `docs/f21-playlist-rules-clock-plan.md`; the
+   implemented plans of F6–F11, F13–F20, and F22 are archived in
+   `../radio-atlantida-docs/archive/frontend/`, see "Archived plans" below), and `docs/deploy-prereqs-plan.md` (deploy
    prerequisites: release compatibility, API version label, stream settings texts, multi-arch
    image).
    Work only on the current phase.
@@ -53,41 +48,41 @@ streams it, and PostgreSQL stores the data.
 
 Phase status: F1 (skeleton), F2 (API client and contract pipeline), F3 (realtime, operations,
 alerts, settings core), F4 (shared UI: help, validation, pickers, player), F5 (settings and
-library pages), F6 (clocks and grid, `docs/f6-clocks-grid-plan.md`), F7 (rotation views: track
-plan, filler reminders, engine warnings, `docs/f7-rotation-views-plan.md`), F8 (live control:
-live voice over WebRTC, music gain, on-air status, `docs/f8-live-control-plan.md`), F9
+library pages), F6 (clocks and grid, `radio-atlantida-docs/archive/frontend/f6-clocks-grid-plan.md`), F7 (rotation views: track
+plan, filler reminders, engine warnings, `radio-atlantida-docs/archive/frontend/f7-rotation-views-plan.md`), F8 (live control:
+live voice over WebRTC, music gain, on-air status, `radio-atlantida-docs/archive/frontend/f8-live-control-plan.md`), F9
 (outages and missed items: played-tracks list, outage list, reschedule and dismiss, open count in
-the header, `docs/f9-outages-missed-plan.md`), F10 (import, analysis, and transcoding: import
+the header, `radio-atlantida-docs/archive/frontend/f9-outages-missed-plan.md`), F10 (import, analysis, and transcoding: import
 page, quality facts and issues, Analyse / Fix loudness / Optimize track for selected
-tracks, `docs/f10-import-plan.md`), F11 (logs: daily file, level and component filters,
-station-time entries, "Open log" from the error popup, `docs/f11-logs-plan.md`), F12 (release
+tracks, `radio-atlantida-docs/archive/frontend/f10-import-plan.md`), F11 (logs: daily file, level and component filters,
+station-time entries, "Open log" from the error popup, `radio-atlantida-docs/archive/frontend/f11-logs-plan.md`), F12 (release
 pipeline: a tag `vX.Y.Z` on `main` pushes `ghcr.io/astronin/radio-atlantida-frontend:X.Y.Z` after
 the full CI, only when `api/openapi.json` is a backend release of the same MAJOR.MINOR; the image
 is multi-arch (`linux/amd64`, `linux/arm64`) and carries the API version label,
 `docs/f12-release-plan.md`), F13 (Grafana link: "Monitoring" in the navigation and "Search in
 Grafana" on the Logs page, from the container's `GRAFANA_URL` served as `/config.json` and read by
-`RuntimeConfigService` (`core/config`), `docs/f13-grafana-link-plan.md`), F14 (broadcast status
+`RuntimeConfigService` (`core/config`), `radio-atlantida-docs/archive/frontend/f13-grafana-link-plan.md`), F14 (broadcast status
 in the header: state, timer on the server clock, tooltip, from `broadcast.state` and
 `GET /api/broadcast/status` in `BroadcastService` (`core/broadcast`),
-`docs/f14-broadcast-status-plan.md`), F15 (air window: played, on-air, and queued items from
+`radio-atlantida-docs/archive/frontend/f14-broadcast-status-plan.md`), F15 (air window: played, on-air, and queued items from
 `GET /api/air-window` on the page `/air-window`, reloaded on playout, plan, and outage events
 without polling; the list is `app-air-window-list` (`shared/air-window`); settings group "Air
-window", `docs/f15-air-window-plan.md`), F16 (import in place: the manager chooses a folder of
+window", `radio-atlantida-docs/archive/frontend/f15-air-window-plan.md`), F16 (import in place: the manager chooses a folder of
 the media root from `GET /api/import/folders`, sees its files and their status from
 `GET /api/import/files`, and imports the new ones where they lie with a type, optional playlists,
-and an optional artist; no inbox, `docs/f16-import-in-place-plan.md`), F17 (bulk track
+and an optional artist; no inbox, `radio-atlantida-docs/archive/frontend/f16-import-in-place-plan.md`), F17 (bulk track
 delete: "Delete (N)" in the library selection bar sends one `POST /api/tracks/delete` for up to
 1,000 tracks; deleted tracks leave the selection, refused ones stay selected with their reasons,
-`docs/f17-bulk-delete-plan.md`), F18 (library pages and sort: `mat-paginator` and sortable
+`radio-atlantida-docs/archive/frontend/f17-bulk-delete-plan.md`), F18 (library pages and sort: `mat-paginator` and sortable
 headers on the library, sorted and paged by the backend with `sort`, `order`, `offset`, and
 `total` on `GET /api/tracks`; page, size, and order in the URL (`library-list-state.ts`); the
-selection is kept across pages, `docs/f18-library-pagination-sort-plan.md`), F19 (track
+selection is kept across pages, `radio-atlantida-docs/archive/frontend/f18-library-pagination-sort-plan.md`), F19 (track
 titles, reviewed mark, "All" weekdays: a row "Rename" dialog that sends the whole track back with
 `PUT`, "Rename (N)" find-and-replace previewed with `POST /api/tracks/rename` `dry_run`, the
 "Reviewed" column, filter (`reviewed` in the URL), and "Mark reviewed (N)" / "Mark not reviewed
 (N)" with `POST /api/tracks/review` (`track-review.ts`), a "Reviewed" switch on the track page
 sent at once, and "All" in `app-weekdays-input`; the backend clears the mark,
-`docs/f19-track-titles-review-weekdays-plan.md`), and F20 (track cue editor and usage marks:
+`radio-atlantida-docs/archive/frontend/f19-track-titles-review-weekdays-plan.md`), and F20 (track cue editor and usage marks:
 "Start and stop" on the track page (`app-track-cue`, `@defer`) with the canvas waveform
 `app-waveform-editor` (`shared/waveform`, peaks from `GET /api/tracks/{id}/waveform`, browser parts
 behind `WAVEFORM_BROWSER`), `app-duration-input` (`m:ss.SSS`), Save with `PUT /api/tracks/{id}/cue`
@@ -96,7 +91,7 @@ then "Mark as reviewed", the plan rebuild followed; previews honour the cue and 
 length, In plan, on air / queued, and the playlist count, filters `in_plan` and `in_playlist=false`,
 moves the on-air mark from the playout events without a request, and reloads on a planned track
 start and on plan events (`docs/library-playout-reload-plan.md`); plan lengths are `out − in`
-(`plannedLength` pipe), `docs/f20-track-cue-editor-plan.md`), and F21 (playlist placement rules, clock inserts, separation
+(`plannedLength` pipe), `radio-atlantida-docs/archive/frontend/f20-track-cue-editor-plan.md`), and F21 (playlist placement rules, clock inserts, separation
 in play rules: `app-clock-rule-input` on the playlist page and a rule badge in the list; the clock
 editor of playlists with overrides and shares, timed inserts (`app-offset-input`, `mm:ss`;
 `app-seconds-input` for tolerances), and the backend's sample hour and warnings; one-time inserts
@@ -244,3 +239,84 @@ commit `api/openapi.json` with the frontend change that uses it. The compiler sh
 it use the project's TypeScript. Remove the override once a release supports TypeScript 6.
 
 Before finishing any change: `npm run lint`, `npm run format:check`, `npm test`, `npm run build`.
+
+## Archived plans
+
+If something is unclear, or you have a question about why the code works this way, look in the
+archive: `../radio-atlantida-docs/archive/frontend/` (implemented plans removed from this repo: F6–F11,
+F13–F20, F22). Code and `docs/tech-design.md` are the source of truth; archived plans are history.
+
+Details from those plans that are easy to "simplify" away:
+
+- Live takeover is always asked (a 409 `live_session_active` opens a confirm), never automatic; when
+  a session ends (Stop or the backend) the peer connection closes but the microphone stays open until
+  "Close microphone"; `live.state` is the truth, read again from `GET /api/live/status` on every
+  event connection (f8).
+- The offer is sent once ICE gathering is `complete` or after 2 s, with no trickle ICE and no STUN or
+  TURN (f8).
+- nginx sends `Permissions-Policy: microphone=(self)`; keep it when editing the headers (f8).
+- Progress of the item on air is computed in the panel from `started_at` and `out_ms − in_ms` with a
+  1 s timer (there are no progress events); past the end it stays at 100 % until an event arrives,
+  and the page never guesses (f8, f15).
+- The music gain slider sets the live value only; it is not saved (a backend restart applies the
+  setting `liquidsoap.music_gain`) (f8).
+- Warnings of built hours come only from `track_plan.warning` events (the plan response has none);
+  `PlanWarningsService` keeps the latest per hour and hides it when it is older than the hour's
+  `built_at`; warnings of hours built before the panel opened are unknown (f7).
+- Date ranges are station dates sent as station midnights in UTC (`stationMidnightUtc`), the end
+  being the midnight after the last date (f7, f9).
+- `GET /api/outages` takes at most 7 days, so the played-tracks page reads its range in 7-day chunks
+  merged by ID (f9).
+- The played-tracks list deliberately does not reload on `playout.now_playing` (it would reset
+  "Load more" on every track): it has a Refresh button and reloads only on rare events (f9).
+- Dismiss uses `ConfirmService.confirm()` with the request as its action, so a refusal stays in the
+  dialog; reschedule targets come from the track plan, and the panel does not repeat the backend's
+  frozen-window rule (f9).
+- On the track page, media actions and the "Reviewed" toggle are disabled while the form is dirty: a
+  transcode changes `file_path`, and saving a title, artist, or file clears the mark, so a stale form
+  would undo either (f10, f19).
+- Fix loudness / Optimize count and send only the tracks whose `fixes` list that fix (the panel never
+  decides what is fixable); a `replace` output asks first, and the request is sent after the dialog
+  closes because the page needs its operation ID (f10).
+- `RuntimeConfigService` reads `/config.json` with plain `HttpClient` (not an API path: no
+  `ApiProblem`, no popup); any failure means "no link" and is not reported; `NGINX_ENVSUBST_FILTER`
+  limits envsubst to `GRAFANA_URL` so nginx's own `$variables` survive; dev uses a git-ignored
+  `public/config.json` (f13).
+- The broadcast timer runs on the server clock (`offset = server time − Date.now()`, updated by every
+  status read and event); a status read overtaken by an event is ignored; the label is
+  `role="status"` `aria-live="polite"` and the timer is `aria-hidden` (f14).
+- `app-air-window-list` is presentational (no HTTP), so it can be placed on another page; the page
+  sends no counts (the settings decide), and its event reloads are debounced (about 250 ms) with a
+  newer reload replacing one in flight; `control_link_connected: false` means unknown, never
+  "nothing on air" (f15).
+- `EVENT_TYPES` in `core/realtime/realtime-events.ts` is an exhaustive record: after `api:sync`
+  brings a new event, the build fails until the event is added there (f15).
+- Import page: the folder is required with nothing preselected, because the type applies to the whole
+  batch; the root is sent as no `folder`; files are paged in the browser (the backend sends at most
+  2,000); a folder missing after a reload clears the control only when `more` is false; the panel
+  never builds or checks a path, or decides whether a file is new (f16).
+- Bulk delete is one `POST /api/tracks/delete`, never one `DELETE` per track, confirmed with
+  `confirm()` (not `confirmDelete()`, which shows one `used_by`); refused tracks stay selected, deleted
+  ones leave explicitly; a 500 also reloads, since some tracks may be gone (f17).
+- The library never sorts rows in the browser (it holds one page); every page, size, sort, and filter
+  change reads from the backend through one `switchMap` stream; `page`, `size`, `sort`, `order` are
+  in the URL with `replaceUrl`, defaults left out and invalid values falling back; a reload that
+  finds the last page empty moves to the new last page (f18).
+- The selection is a map by track ID across pages: the header checkbox acts on the current page
+  only, a filter change clears it, and `deleted` / `not_found` IDs leave it explicitly, not by being
+  absent from the page (f18, f19).
+- Pickers and the playlist pages keep the keyset cursor in the default order; only the library pages
+  by offset (f18).
+- Bulk rename: any edit of Find, Replace, or Match case invalidates the preview, Apply is enabled only
+  for a current preview with a change, and the result shown is the apply answer; the rename dialogs'
+  "Mark as reviewed" sends the review after the save, because the rename clears the mark (f19).
+- Cue editor: its own canvas component (no wavesurfer.js); peaks come from the backend, never decoded
+  in the browser; peaks are drawn scaled by `127 / max_peak` with a "Real level" toggle, dB lines by
+  the real level; limits are only shown, the backend's 422 decides; the editor plays the unsaved
+  values; a cue save marks the track reviewed by default (cue editing is reviewing) (f20).
+- The Duration column shows `air_duration_ms`, but its sort key stays `duration` (the file length)
+  (f20).
+- Save and Next: the list context is in memory (`LibraryCursorService`, written after each list
+  read), not in the URL; with no context, or on the last track, the editor stays with a message and
+  never guesses an order; it navigates with the router so the unsaved-changes guard applies; not
+  shown on "New track" (f22).

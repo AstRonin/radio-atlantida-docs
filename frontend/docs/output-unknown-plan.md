@@ -1,7 +1,7 @@
 # Plan — Unknown Stream Output State on the Live Page (radio-atlantida-frontend)
 
 Status: Done (2026-11-14), commit 0c8be00: snapshot, Live page, texts, tests (3.1–3.3, §4); the dev-stack check in §5 is open. Depends on backend `docs/output-state-and-resync-plan.md` P1 (merged, with its `api/openapi.json`).
-Based on: `docs/tech-design.md` v7-27 (§6.5, §7.1, §8.3), backend `docs/output-state-and-resync-plan.md` (P1, decisions 4–6), `docs/f8-live-control-plan.md` (Live page), `docs/f14-broadcast-status-plan.md` (header state)
+Based on: `docs/tech-design.md` v7-27 (§6.5, §7.1, §8.3), backend `docs/output-state-and-resync-plan.md` (P1, decisions 4–6), `radio-atlantida-docs/archive/frontend/f8-live-control-plan.md` (Live page), `radio-atlantida-docs/archive/frontend/f14-broadcast-status-plan.md` (header state)
 Last updated: 2026-11-14
 
 ## 1. Goal
