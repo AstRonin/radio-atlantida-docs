@@ -1,6 +1,6 @@
 # Plan — Alternative Host: Docker on Linux or macOS (radio-atlantida-deploy)
 
-Status: Draft for approval (2026-11-14); not started.
+Status: Approved (2026-11-14); not started. Starts after the first production install on Windows.
 Based on: `docs/deploy-init-plan.md` (D1–D7, 6.11), `docs/runbook.md`, `docs/dry-run.md`, `docs/tech-design.md` v7-28 §9.
 Last updated: 2026-11-14
 
@@ -20,7 +20,7 @@ Everything stays in Docker; nothing of the application runs natively on the host
 3. **Scheduled jobs move into the stack.** A `scheduler` compose service (the ops image with supercronic) runs `radioctl backup` daily at 04:30 and `radioctl restore-drill` at 05:30 on the 1st, in `Asia/Yerevan` (as the systemd timers do now), and `radioctl boot-check` once when it starts. This replaces the systemd timers on Linux and macOS; in Kubernetes it becomes CronJobs.
 4. **Linux first**, then macOS. Linux can be tested end to end in CI (§7); macOS only by a manual dry run.
 5. **Windows unchanged by this plan.** U0 refactors without changing behaviour (bats and Pester stay green). Moving Windows onto the ops container and scheduler too is a possible later step (§9), not part of this plan.
-6. **Linux distributions.** The installer installs Docker Engine (pinned in `install/versions.env`) on Ubuntu 24.04 LTS and Debian 12/13; on any other distribution it requires Docker Engine ≥ the pinned version to be installed already and checks it (proposed default; confirm).
+6. **Linux distributions.** The installer installs Docker Engine (pinned in `install/versions.env`) on Ubuntu 24.04 LTS and Debian 12/13; on any other distribution it requires Docker Engine ≥ the pinned version to be installed already and checks it (confirmed 2026-11-14).
 7. **Database location per platform.** Linux: the bind-mounted directory `/srv/radio/pgdata` (6.11). macOS: a named volume inside Colima's VM, because a bind mount from the macOS file system goes through virtiofs, which is slow and unreliable for PostgreSQL's `fsync` and permissions; the dumps are copied to a folder on the Mac (the counterpart of the Windows copy).
 
 ## 3. What is common and what is per host
@@ -119,6 +119,6 @@ The split maps directly: application services → Deployments/StatefulSet (Postg
 
 ## 9. Open points and later
 
-1. Confirm decision 6 (which Linux distributions the installer installs Docker on).
+1. Decision 6 and the Docker socket in the ops container and the scheduler (§4) confirmed by the developer on 2026-11-14.
 2. Later, not in this plan: Windows on the ops container and scheduler too (would remove the systemd units and most of `setup-distro.sh`), only after U3 has run in production-like use.
 3. The macOS live-voice path is verified in U4 step 3 before the rest of U4 is built.
