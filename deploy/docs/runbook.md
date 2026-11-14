@@ -23,6 +23,7 @@ Contents
 9. [Restore and the monthly drill](#9-restore-and-the-monthly-drill)
 10. [Troubleshooting](#10-troubleshooting)
 11. [Acceptance checklist (Windows) and the cold-reboot test](#11-acceptance-checklist-windows-and-the-cold-reboot-test)
+12. [Alternative host: Linux](#12-alternative-host-linux)
 
 ---
 
@@ -1053,3 +1054,122 @@ power-on to the VM start. Windows' boot time:
 
 and the keep-alive task's start in Task Scheduler's history (or the first
 line of this boot in `logs\keepalive.log`).
+
+---
+
+## 12. Alternative host: Linux
+
+Windows is the station's host. This chapter is for the alternative: the
+same stack on a Linux machine (`docs/unix-host-plan.md`, U3). Everything
+above applies with the differences below; the macOS host and the full
+per-platform chapters follow later (plan U4, U5).
+
+### 12.1 What it needs
+
+- Ubuntu 24.04 LTS or Debian 12/13 (amd64 or arm64), with systemd: the
+  installer installs Docker Engine at the versions of
+  `install/versions.env` and holds them. Any other distribution: Docker
+  Engine and its Compose plugin at least at those versions, installed
+  already, starting at boot.
+- An administrator account with `sudo`, internet access, the GHCR read
+  token and the Icecast source password (1.4).
+- A folder for the media and, if possible, a second disk for the second
+  copy of the backups.
+- Nothing else: no Docker, git, or jq beforehand on Ubuntu or Debian.
+  Until the first `ops-vX.Y.Z` release the ops image (the tools `radioctl`
+  runs with) is not published, so `install.sh` builds it on the machine
+  (`radio-atlantida-ops:local`, a few minutes, after it has installed
+  Docker); `update.sh` then uses that image by itself.
+
+### 12.2 Install
+
+Unpack a copy of this repository (the ZIP from GitHub, or `git clone`)
+anywhere, then:
+
+```sh
+sh install.sh
+```
+
+One pass is enough on a fresh machine. In order, it asks for `sudo`,
+installs Docker and the user `radio`, then asks for the media folder
+(default `/srv/radio/media`) and the second backup folder (`-` for none);
+asks whether to give the group `radio-media` write access to the media
+folder and everything in it, when some file or folder there lacks it
+(answer yes: the backend writes transcodes next to the originals; a new
+folder is created with it, so the question does not appear); asks whether
+to build the ops image while it is not published (answer yes); then the
+first run's questions
+(2.2): the GHCR user and token and the Icecast source password (nothing is
+shown), and whether to save the proposed stream settings. At the end it
+shows the Grafana password once: write it on the record sheet.
+
+Without questions (`--yes` answers yes to the media group and the ops
+image build; the credentials still come from the terminal or standard
+input, one per line):
+
+```sh
+sh install.sh --yes --media-dir /data/radio/media --backup-copy-dir /mnt/backup/radio
+sh install.sh --yes --media-dir /data/radio/media --no-backup-copy
+```
+
+What it did: the user `radio` (in the groups `docker` and `radio-media`),
+Docker Engine enabled at boot, the ops image (until it is published),
+`/srv/radio/{journal,backups,pgdata}`, the
+media folder with the group `radio-media` (10001) and group write, the
+second backup folder, the clone `/opt/radio-atlantida/deploy` (owned by
+`radio`), `runtime/network.env` (live voice on `127.0.0.1`, no NAT layer),
+the stack (everything but `liquidsoap`, which waits for the cut-over), the
+scheduler service, and the first backup. Running `install.sh` again
+re-checks everything and repairs what is not in order; on an installed
+machine it never runs the first run again.
+
+### 12.3 Commands
+
+`update.sh` takes every argument of `update.bat` (the tables above). Run
+it as the administrator, **without `sudo` in front**: it switches to the
+user `radio` itself (it asks for the administrator's password once):
+
+```sh
+/opt/radio-atlantida/deploy/update.sh status
+/opt/radio-atlantida/deploy/update.sh            # install release.env
+/opt/radio-atlantida/deploy/update.sh rollback
+/opt/radio-atlantida/deploy/update.sh logs scheduler
+```
+
+`sudo /opt/radio-atlantida/deploy/update.sh ...` works as well, but `sudo`
+clears the environment first: a `RADIOCTL_*` switch set by hand (the
+developer's, a dry run's) is then lost. With switches, run it without
+`sudo` or as `sudo -E .../update.sh`. The `radio` user itself runs it
+directly. It runs `radioctl` as `radio` in the ops container (only Docker
+is needed on the machine). The typed words (`RESTORE`, `MAINTENANCE`, `CUTOVER`)
+work in a terminal. The panel and Grafana are on the machine's
+`127.0.0.1` only: open them there, or through an SSH tunnel
+(`ssh -N -L 8080:127.0.0.1:8080 -L 3000:127.0.0.1:3000 <admin>@<machine>`).
+
+### 12.4 Start at boot and schedules
+
+Docker starts at boot (systemd); every container restarts by itself. The
+**scheduler** service (a container of the stack) replaces the Windows
+timers: the daily backup at 04:30 and the restore drill at 05:30 on the
+1st (station time, Asia/Yerevan), and the boot check when it starts after
+a boot. A backup missed while the machine was off runs when the scheduler
+starts, if the last one is older than 26 hours. It runs only backups,
+drills, and the boot check; never an update, a maintenance, a restore, or
+the cut-over. `update.sh status` lists it among the containers and shows
+the results as on Windows (8.2, 9.3); `update.sh logs scheduler` shows its
+log.
+
+### 12.5 Where the data is
+
+The same folders as in WSL, on the machine itself: the database
+`/srv/radio/pgdata`, the journal `/srv/radio/journal`, the backups
+`/srv/radio/backups`, the deploy folder `/opt/radio-atlantida/deploy`
+(`.env`, `state.json`, `logs/`). The second copy is the folder chosen at
+the install (`BACKUP_COPY_DIR` in `.env`). The ops container and the
+scheduler have the Docker socket, which is root on the machine: they are
+local only, listen on no port, and run a pinned image.
+
+> **Never delete or empty `/srv/radio/pgdata` or `/srv/radio`.** It is the
+> database and its backups. No Docker command reaches it, but `rm` does.
+> Never run `docker compose down -v` or `docker volume prune`.
+

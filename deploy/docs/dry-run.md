@@ -7,7 +7,9 @@ machine: the Linux half of the station runs in an Ubuntu 24.04 arm64 VM on
 the developer's Mac, set up the way `install.ps1` sets up the WSL
 distribution, in NAT-like mode (the Mac reaches the VM by its address, as
 Windows 10 reaches the WSL VM). The Windows half is checked on Windows (the
-acceptance list in `docs/runbook.md` §11).
+acceptance list in `docs/runbook.md` §11). The alternative Linux host
+(`install.sh`, `docs/unix-host-plan.md` U3) has its own dry run in
+section 8, in a second VM.
 
 Time: about two hours the first time, most of it waiting for images
 (the first build of the backend and frontend images in the VM takes about
@@ -507,3 +509,141 @@ installed (`min_app_version` 1.0.0 again, runbook 9.2).
 Delete the VM (`orb delete radio-dryrun`, UTM: delete, `limactl delete
 radio-dryrun`). Delete any production dump copied to the Mac after the
 rehearsal.
+
+## 8. Linux host (install.sh)
+
+The dry run of the alternative host (`docs/unix-host-plan.md` U3, runbook
+chapter 12): `install.sh` on a fresh Ubuntu 24.04 machine, then the
+rehearsal of section 6 through `update.sh`, without the Windows steps.
+First passed on 2026-11-14 in an OrbStack machine `radio-linux` (arm64).
+The CI job `linux-install` runs the same install unattended
+(`tests/linux-install/run.sh`); this section is the hands-on version.
+
+### 8.1 The machine and the install
+
+```sh
+# On the Mac: a second machine next to radio-dryrun (which may keep running)
+orb create ubuntu:noble radio-linux
+orb -m radio-linux    # a shell as your user: the administrator, with sudo
+```
+
+Install nothing in it: `install.sh` installs Docker. Install from a clone
+owned by your user in the machine (`git clone
+file:///Users/<you>/.../radio-atlantida-deploy ~/deploy`, the branch under
+test checked out), with `--repo file://$HOME/deploy --branch <branch>`;
+the clone must be readable by `radio` (`chmod -R a+rX ~/deploy`, and `o+x`
+on your home), because the ops container's `git clone` runs as `radio`
+with the clone mounted read-only.
+
+With option B images (4.3) the images need Docker, which `install.sh`
+installs: let the first pass stop at the first run (Ctrl+C at the GHCR
+prompt; everything before it is done and stays), build the images and the
+registry (4.3), write `release.env` with their digests in
+`/opt/radio-atlantida/deploy` as `radio` (a local change, kept by
+`RADIOCTL_NO_FETCH`), and run `install.sh` again: it goes on with the
+first run. With option A (GHCR) one pass is enough.
+
+The dry-run switches are set **in your own shell** (the administrator's),
+not `radio`'s: `install.sh` and `update.sh` pass the `RADIOCTL_*` switches
+and `DRYRUN_CERTS` across their own `sudo`. A plain `sudo update.sh` or
+`sudo install.sh` drops them; call both without `sudo` in front (or with
+`sudo -E`).
+
+```sh
+cat > ~/dryrun-linux.env <<'EOF'
+RADIOCTL_COMPOSE_OVERRIDE=/opt/radio-atlantida/deploy/tests/dryrun/compose.override.yml
+DRYRUN_CERTS=/srv/dryrun-certs
+RADIOCTL_STREAM_OVERRIDE='{"stream.icecast_host":"icecast.test","stream.icecast_port":8443,"stream.name":"Radio Atlantida (Linux dry run)"}'
+RADIOCTL_NO_FETCH=true
+# Option B (local registry) only:
+RADIOCTL_BACKEND_IMAGE=127.0.0.1:5000/radio-atlantida-backend
+RADIOCTL_FRONTEND_IMAGE=127.0.0.1:5000/radio-atlantida-frontend
+EOF
+set -a; . ~/dryrun-linux.env; set +a
+sh ~/deploy/install.sh --repo file://$HOME/deploy --branch <branch>
+```
+
+`DRYRUN_CERTS` is the certificate folder of 4.2, readable by `radio`
+(`/srv/dryrun-certs`, mode 0755, files 0644). `RADIOCTL_NO_FETCH=true`:
+the clone's origin is a path the ops container does not mount, so
+`git pull` would fail. One pass installs Docker, the user `radio`, the
+folders, the ops image (`radio-atlantida-ops:local`, built by `install.sh`
+while `ops.env` has no digest, a few minutes), the clone, the first run.
+The media-group question appears only when an existing media folder has
+files without the group write.
+
+The smoke test of the ops image runs as a user that is not root and can
+use Docker, in a checkout it owns; `radio` in the installed checkout:
+
+```sh
+sudo -u radio sh -c 'cd /opt/radio-atlantida/deploy && ops/smoke.sh radio-atlantida-ops:local'
+```
+
+### 8.2 The scheduler's switches
+
+The scheduler service has no systemd drop-ins: it reads
+`runtime/scheduler.env` (an env file of the compose service, dry run only).
+Give it the switches its commands need, then let an update recreate it:
+
+```sh
+sudo -u radio tee /opt/radio-atlantida/deploy/runtime/scheduler.env >/dev/null <<'EOF'
+RADIOCTL_COMPOSE_OVERRIDE=/opt/radio-atlantida/deploy/tests/dryrun/compose.override.yml
+DRYRUN_CERTS=/srv/dryrun-certs
+RADIOCTL_BACKEND_IMAGE=127.0.0.1:5000/radio-atlantida-backend
+RADIOCTL_FRONTEND_IMAGE=127.0.0.1:5000/radio-atlantida-frontend
+EOF
+/opt/radio-atlantida/deploy/update.sh update </dev/null   # "already running"; the scheduler is recreated
+```
+
+### 8.3 Ports on the Mac
+
+`radio-dryrun` already holds the Mac's forwarded `127.0.0.1:8080` and
+`:3000` when it runs, and a port the Mac uses is not forwarded again. Give
+this machine other ports in `/opt/radio-atlantida/deploy/.env`
+(`PANEL_PORT=18080`, `GRAFANA_PORT=13001`, as `radio`: `sudo -u radio
+nano ...`) and run `update.sh update` (it recreates the panel and
+Grafana). The test Icecast's `8100` is published on `0.0.0.0`: listen at
+`http://radio-linux.orb.local:8100/atlantida` (the machine's address), not
+`127.0.0.1:8100`.
+
+Live voice: the backend publishes `127.0.0.1:8189/udp` in the machine and
+announces `127.0.0.1`. OrbStack forwards loopback UDP to the Mac too (a
+`nc -u` test passed), so the Mac browser reaches it at `127.0.0.1:8189`,
+but only while nothing on the Mac holds that port: stop a local dev backend
+first (on 2026-11-14 it held it, so live voice was not verified).
+
+### 8.4 Rehearsal
+
+Section 6, each `bin/radioctl ...` as `/opt/radio-atlantida/deploy/update.sh
+...` in your shell with the switches loaded, without the Windows parts:
+no systemd units or timers (`update.sh status` lists the scheduler; `update.sh
+logs scheduler`), no keep-alive, the second copy is `BACKUP_COPY_DIR`
+(chosen at the install) instead of `BACKUP_WINDOWS_COPY`, the network values
+are `127.0.0.1` (no VM address). Differences to expect:
+
+- **Same-source 1.0.1 has no migration.** Built from the same backend
+  source as 1.0.0 (only `VERSION` differs, as in `linux-install`), the
+  update to 1.0.1 runs no migration. For a migration, build 1.0.1 with the
+  probe of 4.3 B.
+- **No probe copy on a fresh machine.** The `0023` probe step of 4.3 ("A
+  newer build in an existing VM") is for `radio-dryrun`'s database; a
+  fresh machine's database has no probe migration, so newer builds come
+  from a plain clone.
+- **The boot check and OrbStack's uptime** (step 15). A machine restart
+  (`orb restart radio-linux`) does not reset `/proc/uptime`, which is the
+  OrbStack VM's, and the scheduler container cannot see the machine's own
+  PID 1. So after the restart the scheduler logs `not a boot, no boot
+  check` (more than 15 minutes of OrbStack VM uptime), or, with
+  `RADIOCTL_SCHEDULER_BOOT_WINDOW=999999999` in `runtime/scheduler.env`,
+  runs the boot check and records **`LATE`**: expected here, not a fault.
+  To measure the restart itself, run the boot check by hand right after
+  it, with the machine's uptime (the age of its PID 1):
+
+  ```sh
+  RADIOCTL_UPTIME0=$(ps -o etimes= -p 1 | tr -d ' ') /opt/radio-atlantida/deploy/update.sh boot-check </dev/null
+  ```
+
+  It ends `ok: stack healthy at host uptime N s`. On a real Linux host the
+  scheduler's own boot check is right.
+
+Clean up: `orb delete radio-linux` (and the registry's images with it).
