@@ -9,7 +9,8 @@ distribution, in NAT-like mode (the Mac reaches the VM by its address, as
 Windows 10 reaches the WSL VM). The Windows half is checked on Windows (the
 acceptance list in `docs/runbook.md` §11). The alternative Linux host
 (`install.sh`, `docs/unix-host-plan.md` U3) has its own dry run in
-section 8, in a second VM.
+section 8, in a second VM; the macOS host (U4) needs a real Mac,
+section 9 (not yet run).
 
 Time: about two hours the first time, most of it waiting for images
 (the first build of the backend and frontend images in the VM takes about
@@ -647,3 +648,69 @@ are `127.0.0.1` (no VM address). Differences to expect:
   scheduler's own boot check is right.
 
 Clean up: `orb delete radio-linux` (and the registry's images with it).
+
+## 9. macOS host (install.sh on a real Mac)
+
+**Not yet run.** The dry run of the macOS host (`docs/unix-host-plan.md`
+U4, runbook chapter 13). It needs a real Mac that may be dedicated for a
+day, ideally a spare one: Colima cannot run in a VM (GitHub's macOS
+runners and OrbStack have no nested virtualisation), and the install
+changes the Mac (Colima, `/opt/radio-atlantida`, a launchd daemon,
+`pmset`). Not the developer's Mac with the dev stack: `install.sh` keeps
+the current Docker context, but `pmset` and the launchd daemon are
+machine-wide, and the live voice port `127.0.0.1:8189/udp` must be free.
+So far only the mocks of `tests/radioctl/macos.bats` and the renders of
+`scripts/check-macos.sh` (job `macos`) have run.
+
+### 9.1 The install
+
+As the account that will own the station, from a clone of the branch
+under test (`git clone https://github.com/AstRonin/radio-atlantida-deploy
+~/deploy && git -C ~/deploy checkout <branch>`; a local clone works with
+`--repo file://$HOME/deploy`: it is then mounted read-only into Colima's
+VM):
+
+```sh
+cd ~/deploy
+sh install.sh --repo file://$HOME/deploy --branch <branch> \
+  --media-dir /Users/Shared/RadioAtlantida/media --backup-copy-dir /Volumes/<disk>/radio
+```
+
+The dry-run switches (the test Icecast, a local registry) work as in
+section 8.1, set in the same shell: `install.sh` passes them on (no
+`sudo` in front on a Mac). The test Icecast's certificate folder must be
+inside a folder Colima mounts (for example
+`/opt/radio-atlantida/data/dryrun-certs`, with `DRYRUN_CERTS` pointing at
+it).
+
+### 9.2 Done when (plan U4)
+
+- [ ] install in one pass on a fresh Mac (Homebrew present, and once
+      without it: the release files); a second run reports no change;
+- [ ] the Docker context found before is still the current one
+      (`docker context show`), and `update.sh status` reaches the profile;
+- [ ] Colima's engine meets the pin (`colima update` ran if it did not);
+- [ ] a cold boot **without signing in**: the stack is up and on air
+      within 5 minutes (`colima-launchd.log`, `update.sh status`, the
+      scheduler's boot check);
+- [ ] a power cut (pull the plug, wait, plug in): the Mac starts by itself
+      (`autorestart`) and the stack comes back;
+- [ ] update, rollback, maintenance, cut-over (and undo) through
+      `update.sh`, as section 6;
+- [ ] a live voice session from Safari on the Mac (runbook 13.6); if it
+      fails, record what `lsof -nP -iUDP:8189` shows and try the fallback
+      of the plan (Colima's network address mode, the NAT path);
+- [ ] the daily backup and its copy in the Mac folder (`BACKUP_COPY_DIR`);
+      the restore drill;
+- [ ] the media folder through Colima's mount: the backend writes a
+      transcode next to an original (group 10001 with group write), and
+      the journal folder is writable by Liquidsoap (its owner is the
+      image's user);
+- [ ] `update.sh` as another administrator goes through
+      `sudo -u <owner> -H`.
+
+Clean up a spare Mac (this deletes the database): `sudo launchctl bootout
+system/net.atlantida.radio.colima`, `sudo rm
+/Library/LaunchDaemons/net.atlantida.radio.colima.plist`, `colima delete
+--profile radio-atlantida`, `sudo rm -rf /opt/radio-atlantida`, and `sudo
+pmset -a sleep 1 autorestart 0` (or the values it had).

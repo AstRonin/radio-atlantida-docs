@@ -24,6 +24,7 @@ Contents
 10. [Troubleshooting](#10-troubleshooting)
 11. [Acceptance checklist (Windows) and the cold-reboot test](#11-acceptance-checklist-windows-and-the-cold-reboot-test)
 12. [Alternative host: Linux](#12-alternative-host-linux)
+13. [Alternative host: macOS](#13-alternative-host-macos)
 
 ---
 
@@ -1061,8 +1062,7 @@ line of this boot in `logs\keepalive.log`).
 
 Windows is the station's host. This chapter is for the alternative: the
 same stack on a Linux machine (`docs/unix-host-plan.md`, U3). Everything
-above applies with the differences below; the macOS host and the full
-per-platform chapters follow later (plan U4, U5).
+above applies with the differences below; the macOS host is chapter 13.
 
 ### 12.1 What it needs
 
@@ -1173,3 +1173,173 @@ local only, listen on no port, and run a pinned image.
 > database and its backups. No Docker command reaches it, but `rm` does.
 > Never run `docker compose down -v` or `docker volume prune`.
 
+---
+
+## 13. Alternative host: macOS
+
+The same stack on a Mac (`docs/unix-host-plan.md`, U4), in **Colima**: a
+small Linux VM with Docker, started by launchd at boot. Chapter 12 applies
+with the differences below. **Not yet tried on a real Mac:** the installer
+is tested with mocks only, and the dry run (`docs/dry-run.md` §9) is still
+open; until it passes, use this host only for a rehearsal.
+
+### 13.1 What it needs
+
+- A Mac with Apple Silicon or Intel, macOS 13 (Ventura) or later, at least
+  8 GB RAM and 40 GB free on the system disk (Colima's VM disk grows up to
+  100 GB). A desktop Mac (mini, Studio, iMac) is best: a laptop cannot
+  start by itself after a power cut (`autorestart`, 13.4).
+- An administrator account that will own the station: it installs, runs
+  `update.sh`, and Colima runs as this user. No other account and no
+  auto sign-in are needed.
+- Internet access, the GHCR read token and the Icecast source password
+  (1.4); a folder for the media and, if possible, a second disk for the
+  second copy of the backups. Both must be present at boot (an external
+  disk that mounts late delays the start: launchd retries every minute).
+- Nothing else: `install.sh` installs Colima, Lima, the Docker CLI with
+  Compose and buildx (Homebrew if it is there, else the pinned release
+  files of `install/versions-macos.env`, checked by SHA-256). Docker
+  Desktop or OrbStack may stay installed: the station never switches the
+  Docker context (13.3).
+
+### 13.2 Install
+
+Unpack a copy of this repository anywhere, open Terminal **as the station
+account**, and run (no `sudo` in front; it asks for the password where it
+needs it):
+
+```sh
+sh install.sh
+```
+
+It asks for the media folder (default `/Users/Shared/RadioAtlantida/media`),
+the second backup folder (`-` for none), whether to give the group 10001
+(`radio-media`) write access to the media folder when files there lack it
+(answer yes: the backend writes transcodes next to the originals; a new
+folder gets it without the question), whether to build the ops image
+while it is not published (yes), then the first run's questions as in
+2.2. Without questions:
+
+```sh
+sh install.sh --yes --media-dir /Users/Shared/RadioAtlantida/media --backup-copy-dir /Volumes/Backup/radio
+```
+
+The options are the Linux ones (12.2). What it did:
+
+- the tools (above), held at their versions (`brew pin` with Homebrew);
+- `/opt/radio-atlantida/deploy` (the clone), `/opt/radio-atlantida/data`
+  (journal, backups), `/opt/radio-atlantida/logs`, all owned by this
+  account;
+- Colima's profile `radio-atlantida` (`~/.colima/radio-atlantida/colima.yaml`):
+  half the CPUs, half the RAM within 4–16 GB, the folders above, the media
+  and copy folders mounted into the VM at the same paths; started;
+- the database volume `radio-atlantida-db` inside the VM and
+  `runtime/host.override.yml`, which points `db` at it;
+- the launchd daemon `net.atlantida.radio.colima` and the power settings
+  (13.4);
+- `runtime/network.env` (live voice on `127.0.0.1`), the stack, the
+  scheduler service, and the first backup.
+
+Running `install.sh` again re-checks and repairs; it never restarts a
+running VM and never runs the first run again.
+
+### 13.3 Commands
+
+`update.sh` takes every argument of `update.bat`. Run it as the station
+account, without `sudo`:
+
+```sh
+/opt/radio-atlantida/deploy/update.sh status
+/opt/radio-atlantida/deploy/update.sh            # install release.env
+/opt/radio-atlantida/deploy/update.sh logs scheduler
+```
+
+Another account (or `sudo` in front) goes through
+`sudo -u <station account> -H`. The panel and Grafana are on the Mac's
+`127.0.0.1` (Safari on the Mac, or an SSH tunnel as in 12.3).
+
+The station's Docker is Colima's profile, addressed by its socket
+`~/.colima/radio-atlantida/docker.sock`: `update.sh`, `install.sh`, and
+the launchd daemon never change the current Docker context, so a plain
+`docker ps` in Terminal may show another engine (Docker Desktop, OrbStack).
+To look at the station's containers by hand:
+
+```sh
+DOCKER_HOST=unix://$HOME/.colima/radio-atlantida/docker.sock docker ps
+colima status --profile radio-atlantida
+```
+
+A change of the profile (more RAM after a hardware upgrade: run
+`install.sh` again) takes effect at the next start of the VM. Restart it
+only in a maintenance window (chapter 7): the stack stops while it
+restarts.
+
+```sh
+colima stop --profile radio-atlantida
+colima start --profile radio-atlantida --activate=false --save-config=false
+```
+
+### 13.4 Start at boot and schedules
+
+The launchd daemon `/Library/LaunchDaemons/net.atlantida.radio.colima.plist`
+runs `colima start --profile radio-atlantida` as the station account at
+every boot, **before anyone signs in**, and tries again every minute until
+it succeeds; its log is `/opt/radio-atlantida/logs/colima-launchd.log`.
+Every container restarts by itself once the VM runs. The scheduler service
+runs the backups, the restore drill, and the boot check as on Linux
+(12.4); the boot check measures the VM's uptime.
+
+`install.sh` sets `pmset -a sleep 0 autorestart 1`: the Mac never sleeps
+(the display may) and starts by itself when the power comes back. Check
+with `pmset -g`. Turn off FileVault's pre-boot password, or the Mac waits
+at the unlock screen after a power cut (System Settings > Privacy &
+Security > FileVault); and do not let macOS updates install by themselves
+(System Settings > General > Software Update > Automatic Updates: off
+for "Install macOS updates"), as in 6.3.
+
+### 13.5 Where the data is
+
+- The **database**: the Docker volume `radio-atlantida-db` **inside
+  Colima's VM**, not a folder on the Mac (PostgreSQL is not reliable
+  through the Mac's shared folders). It lives in the VM's disk, among
+  Colima's files under `~/.colima` of the station account.
+- The journal and the backups: `/opt/radio-atlantida/data/journal` and
+  `/opt/radio-atlantida/data/backups`, on the Mac; the second copy is the
+  folder chosen at the install (`BACKUP_COPY_DIR`).
+- The deploy folder `/opt/radio-atlantida/deploy` (`.env`, `state.json`,
+  `logs/`), on the Mac.
+
+So the daily dump in `/opt/radio-atlantida/data/backups` (and its copy) is
+the only copy of the database outside the VM: keep the second copy on
+another disk.
+
+> **Never run `colima delete`** (with or without `--profile
+> radio-atlantida`), never delete `~/.colima` or anything in it, and
+> never "reset" Colima. It
+> deletes the VM and with it the database, as `wsl --unregister` does on
+> Windows; only the last dump would remain (9.1). Never run `docker compose
+> down -v` or `docker volume prune` against the station's engine, and never
+> delete `/opt/radio-atlantida`.
+
+### 13.6 Live voice: verify it on the Mac
+
+The backend's voice port is published on the VM's `127.0.0.1:8189/udp`,
+and Colima's port forwarder (`portForwarder: grpc` in the profile; the
+default `ssh` forwards only TCP) brings it to the Mac's `127.0.0.1`.
+**TODO (not yet verified on a real Mac, plan U4 step 3):** after the
+install, before the first air:
+
+1. `update.sh status` shows "live voice on 127.0.0.1:8189/udp", and
+   `lsof -nP -iUDP:8189` on the Mac shows a listener (Lima's host agent).
+   Nothing else on the Mac may hold that port (a developer's local
+   backend, for example).
+2. Open the panel in Safari on the Mac (`http://127.0.0.1:8080`) and start
+   a live voice session: it connects, and the stream carries the voice
+   (as in the Windows acceptance list, 11.1).
+
+If no audio arrives, the fallback of the plan is Colima's network address
+mode: `network.address: true` in the profile (a VM address reachable from
+the Mac), the voice port bound to `0.0.0.0`, and the VM's address in
+`LIVE_PUBLIC_IPS` (`radioctl network`'s NAT path, which a Mac does not
+offer yet). That needs a code change: send the result of this check to the
+developer.
