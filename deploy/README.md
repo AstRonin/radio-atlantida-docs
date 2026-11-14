@@ -28,8 +28,10 @@ backend and frontend run as prebuilt images from GitHub Container Registry.
 
 Runtime files (never committed), inside the distribution under
 `/opt/radio-atlantida/deploy`: `.env`, `state.json`, `state.lock`,
-`runtime/` (`applied.env`, `target.env`, `network.env`), `logs/`. Backups
-are under `/srv/radio/backups` with a copy in `C:\RadioAtlantida\backups`.
+`runtime/` (`applied.env`, `target.env`, `network.env`), `logs/`. The
+database is the directory `/srv/radio/pgdata` (a bind mount, not a Docker
+volume). Backups are under `/srv/radio/backups` with a copy in
+`C:\RadioAtlantida\backups`.
 
 Line endings: LF everywhere except `*.bat` and `*.ps1` (CRLF; `*.ps1` also
 UTF-8 with BOM), set by `.gitattributes` and checked in CI.

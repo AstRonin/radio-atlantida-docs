@@ -76,6 +76,11 @@ Options before the command: `--dry-run` (show every step, change nothing),
 > disk of the station: the database, the playout journal, and the backups
 > inside it. Only the Windows copy of the backups (`C:\RadioAtlantida\backups`)
 > survives it. No step of this runbook needs it.
+>
+> **Never delete or empty `/srv/radio/pgdata`.** It is the database. No
+> Docker command reaches it (`docker volume prune`, `docker system prune
+> --volumes`, `docker compose down -v` leave it alone), but deleting the
+> folder deletes the database.
 
 ---
 
@@ -355,6 +360,10 @@ until you switch. Choose a quiet time.
    starts and connects. Within 60 seconds it reports `Cut-over done`, the
    source address, and where the listener address is: the server's status
    page `https://<host>:<port>/status-json.xsl` (the mount's `listenurl`).
+   If it also says `next item held until <time> UTC (plan alignment)`,
+   that is expected: after a Liquidsoap start the backend waits with the
+   next plan item until its planned start, so the hour stays on its plan,
+   and the emergency playlist plays until then (at most one track).
 5. **Listen to the stream** in a player, or on another device, and check by
    ear. The listener address may differ from the source address; today it
    is `http://listen.teploe.net:8100/atlantida`.
@@ -406,6 +415,9 @@ it keeps retrying; check 10.4 ("Liquidsoap not connected"), or undo.
   results), `OVERDUE` if no backup succeeded for 26 hours, the last update
   dump, the last restore drill, `DUE` if the last good drill is older than
   35 days.
+- **Database**: the database folder `/srv/radio/pgdata`, `used` and its
+  size; a `WARNING` if the old database volume of an earlier install still
+  exists (10.8).
 - **Disk**: free space (percent and GB) of the deploy folder, the backups,
   and the media folder; `LOW SPACE` below 15 %.
 - **Media**: `ok`, `MISSING` (the drive is not there), or `NOT WRITABLE`.
@@ -466,9 +478,12 @@ Double-click **"Radio update"** (or run `update.bat`). It:
    recorded digests, the versions fit together, the release is not older
    than the database allows;
 4. checks the air: an open outage stops the update; live voice on air asks
-   first; Liquidsoap must have at least 2 items queued; it waits until the
-   next hour's items have been sent (a few minutes before and one minute
-   after the full hour);
+   first; Liquidsoap must have at least 2 items queued (right after a
+   Liquidsoap start the queue is empty on purpose until the next item's
+   planned start: it says `next item held until <time> UTC (plan
+   alignment)` and waits for it, or goes on if that is more than 2 minutes
+   away); it waits until the next hour's items have been sent (a few
+   minutes before and one minute after the full hour);
 5. downloads the images (the air is not touched);
 6. **makes a database dump** (always; there is no way to skip it);
 7. runs the database migrations while the old backend still runs;
@@ -569,6 +584,20 @@ window.
 The database and the playout journal (the record of what aired). The media
 folder is ordinary Windows files and is **not** backed up by the station:
 copy it with any Windows backup tool.
+
+Where the station keeps its data, inside the distribution:
+
+| Folder | What |
+|--------|------|
+| `/srv/radio/pgdata` | the database itself (PostgreSQL's files; only the database container reads them, so `radio` cannot open the folder) |
+| `/srv/radio/journal` | the playout journal |
+| `/srv/radio/backups` | the backups (below) |
+| `/opt/radio-atlantida/deploy` | this repository, `.env`, `state.json`, the logs |
+
+The database folder survives updates, rollbacks, restarts, a reinstall of
+Docker, and any Docker clean-up command. It does not survive
+`wsl --unregister` or a broken disk: the backups and their Windows copy are
+the protection against those.
 
 | Where | What |
 |-------|------|
@@ -750,6 +779,8 @@ Sign in as `radio` and run `update.bat status`.
 | "Docker Engine is X, install/versions.env pins Y; run install.bat" | a new `versions.env` came with the repository | 6.3 |
 | `install.bat`: "install\versions.env of this copy ... differs from the deploy repository inside the distribution" | the Windows copy of this repository is out of date (or `update.bat` has not pulled the new one yet) | 6.3 |
 | "another radioctl run holds state.lock" (or it waits) | an update, backup, or drill is running | wait for it to finish |
+| "the database is still in the old volume radio-atlantida_pgdata ..." or "old database volume ... found" | an install from before the database folder (10.8) | 10.8 |
+| "the database directory /srv/radio/pgdata is missing" | `install.bat` has not run since the database moved to a folder | run `install.bat` again (it creates the folder and changes nothing else) |
 
 **Changing the Icecast source password**: see 10.7, step 3.
 
@@ -832,6 +863,86 @@ developer.
 
 If the server moved for good, also tell the developer, so
 `config/stream-defaults.json` (what a new install proposes) is updated.
+
+### 10.8 Move the database from the old volume (once)
+
+Installs made before 2026-11-14 kept the database in the Docker volume
+`radio-atlantida_pgdata`; it now lives in the folder `/srv/radio/pgdata`.
+An install with the old volume must move it once. Until then
+`update.bat`, `rollback`, and `maintenance` stop with "the database is
+still in the old volume ... move it first", and `status` and the boot
+check warn. (The production station was installed after the change and
+has no old volume; this is for the dry-run machine and any early test
+install.)
+
+The panel and live voice are off for a few minutes; Liquidsoap keeps
+playing its queue, then the emergency playlist. Do it outside the air
+hours, or accept a short gap of planned items. In a shell inside the
+distribution (10.2), in `/opt/radio-atlantida/deploy`:
+
+1. Create the folder (as root; `install.bat` does the same):
+
+   ```sh
+   sudo install -d -o 0 -g 0 -m 0700 /srv/radio/pgdata
+   ```
+
+   (On the station: run `install.bat` again instead.)
+2. Get the new version of this repository and check:
+
+   ```sh
+   git pull --ff-only
+   bin/radioctl status
+   ```
+
+   "Database" shows `directory /srv/radio/pgdata (empty)` (no size: the
+   size is shown only for a used folder) and the warning "the database is
+   still in the old volume"; "Pending maintenance" lists `db service
+   definition changed`.
+3. Back up: `bin/radioctl backup`.
+4. Stop the backend and the database:
+
+   ```sh
+   bin/radioctl compose stop backend db
+   ```
+
+5. Copy the volume into the folder with the database image, keeping owner
+   and modes:
+
+   ```sh
+   docker run --rm -v radio-atlantida_pgdata:/from:ro -v /srv/radio/pgdata:/to \
+     postgres:17.11 bash -c 'cp -a /from/. /to/'
+   ```
+
+   Then `bin/radioctl status` shows `directory /srv/radio/pgdata (used)`
+   (still no size: the database is stopped) and the warning "old database
+   volume ... found".
+6. Start the database on the folder (Compose recreates it with the new
+   definition), then the backend:
+
+   ```sh
+   bin/radioctl compose up -d --no-deps --wait db
+   bin/radioctl compose up -d --no-deps backend
+   ```
+
+7. Record it: `bin/radioctl maintenance`, type **`MAINTENANCE`** (it
+   takes a dump and recreates the database once more on the same folder,
+   and clears `db service definition changed`).
+8. Check: `bin/radioctl status` (every service healthy, `directory
+   /srv/radio/pgdata (used, <size>)`, broadcast `connected` after the cut-over), and the
+   panel: the library, the clocks, and the play history are there.
+9. Only then remove the old volume, by hand:
+
+   ```sh
+   docker volume rm radio-atlantida_pgdata
+   ```
+
+   `status` no longer warns.
+
+If step 6 fails or the panel is empty: stop again (step 4), empty the
+folder (`docker run --rm -v /srv/radio/pgdata:/d postgres:17.11 bash -c
+'rm -rf /d/* /d/.[!.]*'`) and repeat step 5; the old volume is untouched
+until step 9. As a last resort, start the database on the empty folder
+and restore the dump of step 3 (`bin/radioctl restore daily/<file>`, 9.1).
 
 ---
 

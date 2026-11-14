@@ -242,6 +242,90 @@ build. `VERSION` on the frontend build only makes the two frontend images
 differ, as two releases do. `release.env` is now a local change: use
 `--no-fetch` on every `update`, so `git pull` does not run.)
 
+**A newer build in an existing VM** (a later rehearsal, a fix to try): the
+VM's database is already at the 1.0.1 probe migration (its number is one
+above the backend's newest real migration, `0023` at the time of writing).
+A backend image built from a plain clone lacks that file, and its
+`migrate up` refuses or misreads the newer schema. Copy the probe into
+every new build's source:
+
+```sh
+v=1.0.3   # the version you build
+rm -rf ~/backend-$v && cp -a ~/backend ~/backend-$v &&
+  cp ~/backend-1.0.1/internal/migrations/0023_dryrun_probe.up.sql ~/backend-$v/internal/migrations/
+```
+
+(Use the probe's actual file name if the number differs.) Then build and
+push `~/backend-$v` as above.
+
+**Older images and the script contract.** Images built before the script
+contract they run with do not understand its callbacks: the 1.0.0 and 1.0.1
+images of an early rehearsal predate contract 2, so with the contract 2
+script running every heartbeat gets `422`, the outage detector sees no
+heartbeat and opens a `liquidsoap_callback` outage, the header shows
+`unreachable`, and a later `update` stops in the air check ("An outage is
+open"). These are false outages. For steps 8 and 9 (older release,
+rollback), build the older versions from contract 2 code (the same
+checkout, only `VERSION` differs), or start the next `update` while the
+broadcast state is `connected` again.
+
+A backend without `held_until` (1.0.3 and older) has a second limit: when
+it is installed within one track of a Liquidsoap start, the queue is not
+full yet, the new backend fails its health gate after 90 s, and the update
+is undone automatically. Install such a release only while the queue is
+full: not within a track of a `maintenance`, a `cutover`, or another
+Liquidsoap start.
+
+### 4.4 An existing VM: move the database into its folder (once)
+
+The database is the folder `/srv/radio/pgdata` (deploy-init-plan.md 6.11;
+earlier installs used the Docker volume `radio-atlantida_pgdata`). A VM set
+up before that change moves once; a new VM gets the folder from
+`setup-distro.sh` and skips this.
+
+1. As your user: update `~/deploy` (`git -C ~/deploy pull --ff-only`),
+   copy `install/` and `docker-compose.yml` again as in section 2, and run
+   `setup-distro.sh` once more (section 3.3): it reports
+   `changed: /srv/radio/pgdata created` and nothing else.
+2. As `radio`, with the environment of step 5: runbook 10.8 from step 2
+   (`git pull --ff-only` in the deploy folder; `status` shows the folder
+   `empty` and the warning; `backup`; stop `backend db`; the copy; start
+   `db` and `backend`; `maintenance`; check; then `docker volume rm
+   radio-atlantida_pgdata`). Step 1 of 10.8 is done by `setup-distro.sh`.
+3. Then, on the folder: `--no-fetch update` (and `update 1.0.0` with
+   `rollback`), `maintenance` after a change (step 12 of section 6),
+   `restore-drill`, a VM restart with the boot check (step 15), and the
+   prune test. `docker volume prune` removes only volumes that no
+   container references, a stopped one included, so remove the containers
+   first (`down` without `-v`):
+
+   ```sh
+   bin/radioctl compose down
+   docker volume prune -a -f
+   ```
+
+   This also removes the rebuildable volumes `grafana-data`, `loki-data`,
+   `alloy-data`, and `liquidsoap-state` (Grafana starts fresh from its
+   provisioning, the old logs are gone, Liquidsoap forgets its last
+   output). Then bring the stack back. `compose start` cannot (the
+   containers are gone), and a plain `compose up` would also run the
+   one-shot `migrate` and `grafana-role` and start `liquidsoap`, so name
+   the services with `--no-deps`:
+
+   ```sh
+   bin/radioctl compose up -d --no-deps --wait db
+   bin/radioctl compose up -d --no-deps backend frontend loki alloy grafana
+   ```
+
+   (without `grafana` when monitoring is off; after the cut-over also
+   `bin/radioctl compose up -d --no-deps liquidsoap`). `status` shows the
+   folder `used` with the same size, and the panel keeps its library and
+   history.
+
+`radioctl` refuses `update`, `rollback`, and `maintenance` while the old
+volume holds the database and the folder is empty ("move it first
+(runbook 10.8)"), and warns while the moved volume still exists.
+
 ## 5. The dry-run environment
 
 The switches of `bin/radioctl` (environment only, never `.env`), in one file
@@ -335,6 +419,35 @@ mount and the title (`source.title`).
 | 16 | `bin/radioctl cutover --undo` (type `CUTOVER`) | `liquidsoap` stopped (`exited`); `status`: cut-over not yet; broadcast `unreachable` once the mount check notices (some seconds) |
 | 17 | `bin/radioctl --dry-run update`, and `bin/radioctl --dry-run --no-fetch update 1.0.0` | every step printed, nothing changed (`state.json` and `runtime/` unchanged) |
 | 18 | `bin/radioctl cutover` again (type `CUTOVER`), then the password change of runbook 10.7: Set a new `ICECAST_SOURCE_PASSWORD` in `.env`, `bin/radioctl status`, `bin/radioctl compose up -d icecast-test` (the test Icecast reads the same `.env`), then `bin/radioctl maintenance` (type `MAINTENANCE`) | `status` and `maintenance` list `liquidsoap environment changed (... ICECAST_SOURCE_PASSWORD)`, never the value; between the Icecast restart and the maintenance `logs liquidsoap` shows `401`, the panel `reconnecting` or an outage; Liquidsoap connected again within 60 s; `status`: broadcast `connected` |
+
+Tips:
+
+- **Force a Liquidsoap restart** (for step 12, or to test the plan
+  alignment below): append a comment line, `echo '# dry run' >>
+  config/liquidsoap/radio.liq`; `status` lists the script as changed and
+  `maintenance` restarts Liquidsoap. Reverting it (`git checkout
+  config/liquidsoap/radio.liq`) is a change too and needs a second
+  maintenance.
+- **After every Liquidsoap start the queue is empty for up to one track:**
+  the backend holds the first item of the hour on air until its planned
+  start − 0.5 s, so the hour stays on its plan, and the emergency playlist
+  plays until then. `GET /api/playout/status` shows `held_until` meanwhile.
+  `cutover` accepts this at once and says `next item held until <time> UTC
+  (plan alignment)`; the air check of `update` waits for the held item when
+  it is due within 2 minutes, and goes on with the same message when it is
+  due later.
+
+**Output state and plan alignment** (backend output-state-and-resync plan,
+script contract 2), after step 4:
+
+| Check | Expect |
+|-------|--------|
+| `echo CUTOVER \| bin/radioctl cutover --undo`, then `bin/radioctl cutover` while a long item plays | `Cut-over done` within seconds, `cutover_utc` recorded, `next item held until ...` when the queue is empty |
+| a cut-over while the test mount still has another source | the Live page shows `disconnected` and the header `reconnecting` until that source leaves, then `connected` |
+| `bin/radioctl maintenance` mid-hour, and `bin/radioctl compose restart liquidsoap` mid-hour, with a timed one-time insert in that hour | the next item and the insert air at their planned second (journal `start` vs the plan, within 1 s); the gap is the emergency playlist |
+| `bin/radioctl --no-fetch update` right after a Liquidsoap restart | the air check passes (waits for the held item, or accepts it) |
+| `bin/radioctl compose stop liquidsoap` | the Live page shows `unknown` within 15 s; the header shows **`unreachable`**, not `unknown`: the control link is lost, an outage opens, and an open outage wins over an unknown output. `compose start liquidsoap` afterwards |
+| `bin/radioctl compose restart backend` with Liquidsoap running | the output state is correct within 5 s, with the `since` from before the restart |
 
 **Step 3 through the API** (no clicks; the backend publishes no port, so
 the calls go through its container; `jq` and `curl` as in `radioctl`):
