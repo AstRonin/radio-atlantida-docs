@@ -37,7 +37,7 @@ On the Edit track page, the file path and the length are no longer edited in the
 
 - In the File block, a "Replace file" button. Disabled while the form is dirty, with the same hint as the reviewed mark.
 - Opens `ReplaceFileDialogComponent` (new, in `src/app/features/library/`), modelled on `artist-dialog.component.ts`:
-  - a folder choice and a file choice under the media root, not a free-text path (see "File choice" below);
+  - one `app-text-input` for the path under the media root, with a hint (same wording as the backend rule: relative, forward slashes);
   - a short note that the reviewed mark is cleared and the cue is reset if it no longer fits the new length;
   - Save calls `POST /api/tracks/{id}/replace-file` with `ApiSchema<'ReplaceFileBody'>` through `ApiClient`.
 - On success the dialog closes with the new `Track`. The edit page reloads the track, the form resets to the stored values, and `cueResetNote` is shown when the cue was reset (compare the cue values before and after).
@@ -46,17 +46,7 @@ On the Edit track page, the file path and the length are no longer edited in the
   - 404 `track_file_not_found` (the file is missing on disk) is shown with `problemMessage()` as a form-level message, the dialog stays open;
   - 409 refusal (track in use: clock or one-time insert, planned hour, or on air/queued) is shown with `problemMessage()` and the `used_by` list, and the dialog stays open. The user closes the dialog; the same path cannot be retried for this track while it is in use.
 - The replace is synchronous: the request may take as long as the analysis of the file. Show a busy state on Save and disable it until the response returns.
-### File choice (folder and file picker)
-
-The dialog chooses the file the same way the import page does, using the existing endpoints. No backend change.
-
-- Folder: `ImportFolderSelectComponent` (`features/import/import-folder-select.component.ts`, selector `app-import-folder-select`) is moved to `src/app/shared/pickers/`, because the library feature may import only from `core` or `shared`. Its spec moves with it. The import page imports it from shared. Behaviour is unchanged. Data: `GET /api/import/folders` (`ImportFolders`, max 500 folders, `more` flag), loaded when the dialog opens. The root option is the media root (value `''`).
-- Files: a new list in the dialog, not a moved component. The import page's file table is inline and the file list is not reusable as-is; copying the small table is preferred over extracting it now. Data: `GET /api/import/files` with `folder` set to the chosen folder (`ImportFiles`, `items` with `path`, `size`, `modified_at`, `status`, `track_id`). Single selection; the selected row is kept in a signal.
-- Which files can be chosen: only rows with `status === "new"` (not in any track). Rows with `in_library` or `original` are shown disabled with their status, and `not_audio` rows are disabled too. A row linked to the track being edited is shown as "current file" and disabled. This matches the backend refusal for a path taken by another track, so the user does not get a 422 from a choice the UI could have blocked.
-- If `items` reports `more: true`, a notice says the list is cut and the user should pick a narrower folder.
-- Save sends `POST /api/tracks/{id}/replace-file` with the selected `path`. The path field is no longer shown, the typed-path validator is no longer used in this dialog.
-- Empty states: no folders, empty folder (no files), and a folder that fails to load (`problemMessage()`).
-- Tests: the moved folder select keeps its existing tests; new tests for the dialog: folders load, choosing a folder loads its files, only `new` rows are selectable, disabled rows show their status, Save posts the chosen path, and a 422 or 404 from the backend still shows as before.
+- The dialog does not offer a file picker in v1. The path is typed. A picker needs a list endpoint for the media folder, which is not part of this plan.
 
 ### 4. Texts and help
 

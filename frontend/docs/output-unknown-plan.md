@@ -1,6 +1,6 @@
 # Plan — Unknown Stream Output State on the Live Page (radio-atlantida-frontend)
 
-Status: Approved design (2026-11-14); not started. Depends on backend `docs/output-state-and-resync-plan.md` P1 (merged, with its `api/openapi.json`).
+Status: Done (2026-11-14), commit 0c8be00: snapshot, Live page, texts, tests (3.1–3.3, §4); the dev-stack check in §5 is open. Depends on backend `docs/output-state-and-resync-plan.md` P1 (merged, with its `api/openapi.json`).
 Based on: `docs/tech-design.md` v7-27 (§6.5, §7.1, §8.3), backend `docs/output-state-and-resync-plan.md` (P1, decisions 4–6), `docs/f8-live-control-plan.md` (Live page), `docs/f14-broadcast-status-plan.md` (header state)
 Last updated: 2026-11-14
 
@@ -18,11 +18,11 @@ The header's broadcast state (`broadcast.state`, `core/broadcast/`) already has 
 
 ## 3. Steps
 
-### 3.1 API snapshot
+### 3.1 API snapshot — done (0c8be00)
 
 `npm run api:sync` with the backend `api/openapi.json` that contains P1. `src/app/core/api/generated/api.ts` then has `IcecastStateData.state` and `PlayoutOutput.state` as `"connected" | "disconnected" | "unknown"` (now at `:1883-1886`, `:2743-2748`). No hand edits.
 
-### 3.2 Live page (`src/app/features/live/on-air.component.ts:53-67`)
+### 3.2 Live page — done (0c8be00) (`src/app/features/live/on-air.component.ts:53-67`)
 
 - Badge: `[class.warn]="output.state === 'disconnected'"` instead of `!== 'connected'`, so `unknown` is neutral.
 - The text stays `'live.onAir.' + output.state | translate` (`unknown` → `live.onAir.unknown`).
@@ -30,11 +30,11 @@ The header's broadcast state (`broadcast.state`, `core/broadcast/`) already has 
 - `src/app/features/live/live-page.component.ts`: no change; update the comment at `:38` if it lists the states.
 - `src/app/core/realtime/realtime-events.ts:34`: no change (the event type is already registered).
 
-### 3.3 Texts (`src/assets/i18n/en.json`)
+### 3.3 Texts (`src/assets/i18n/en.json`) — done (0c8be00)
 
 `live.onAir.unknown`: "No data". If a help text describes the stream output row, add: "No data: the playout engine has sent no heartbeat for a few seconds, or the backend has just started."
 
-## 4. Tests
+## 4. Tests — done (0c8be00)
 
 `src/app/features/live/live.spec.ts` (`follows the playout events`, `:155-181`, or a new case next to it):
 
