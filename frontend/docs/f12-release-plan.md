@@ -1,6 +1,6 @@
 # Phase F12 Plan — Release Pipeline (radio-atlantida-frontend)
 
-Status: Done (the release path itself runs only on a real tag; see §5)
+Status: Done (the release path itself runs only on a real tag; see §5). No tag exists yet (2026-11-15).
 Based on: `docs/tech-design.md` (§1.1, §6.4, §9.2), `docs/frontend-init-plan.md` §8 item 12 and §9.2, backend `docs/phase-13-plan.md` (release pipeline, done), deploy plan (`IMAGE_TAG` format, no `latest`)
 Last updated: 2026-11-12 (release compatibility, API version label, multi-arch image: `docs/deploy-prereqs-plan.md` F1, F2, F4)
 

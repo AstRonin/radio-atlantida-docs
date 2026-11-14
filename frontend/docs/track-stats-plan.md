@@ -1,6 +1,6 @@
 # Plan — Library Statistics Row and Clear Filters (radio-atlantida-frontend)
 
-Status: Approved by the operator (2026-11-10); not started
+Status: Done (verified 2026-11-15). Commit: 9c3c080. Backend counterpart: f8bb8e4.
 Based on: `docs/tech-design.md` (§6), backend `docs/track-stats-plan.md`
 Last updated: 2026-11-10
 

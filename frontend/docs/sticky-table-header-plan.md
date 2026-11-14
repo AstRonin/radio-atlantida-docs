@@ -1,5 +1,7 @@
 # Sticky table headers: frontend plan
 
+Status: Done (verified 2026-11-15). Commit: dd7003c.
+
 ## Goal
 
 Every table in the panel scrolls its rows inside the table, and the header row stays visible at the top of the table. A table that fits in its height looks and behaves as today: no inner scrollbar. A longer table gets a height limit and a vertical scrollbar of its own; the header stays fixed while the rows scroll under it.

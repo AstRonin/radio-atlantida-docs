@@ -1,6 +1,6 @@
 # F21 Plan — Playlist Placement Rules, Clock Inserts, Separation in Play Rules (radio-atlantida-frontend)
 
-Status: Approved by the operator (2026-10-17), open questions answered (§9). Backend contract: backend `docs/phase-23-plan.md` (approved). Needs backend phase 23 (`docs/phase-23-plan.md`) and changes to `docs/base.md` and `docs/tech-design.md` in both repositories.
+Status: Done (verified 2026-11-15). Commit: 5b4da0c (PR #5). Backend counterpart: phase 23 (8c06e8c).
 Based on: `docs/base.md`, `docs/tech-design.md` (§4, §6.0, §6.2, §7, §7.2, §7.3), `docs/f6-clocks-grid-plan.md`, `docs/f7-rotation-views-plan.md`, `docs/f9-outages-missed-plan.md`
 Last updated: 2026-10-17
 

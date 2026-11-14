@@ -1,5 +1,7 @@
 # Import file details: frontend plan
 
+Status: Done (verified 2026-11-15). Commits: frontend 3b970b4; backend 8b1e037.
+
 ## Goal
 
 The Import page file table shows the artist, title, and duration of each file, and a row can be expanded to see the technical facts. Data comes from the backend plan `import-file-details-plan.md` (backend `docs/`): `ImportFile.track` for known files, `ImportFile.name_title` / `name_artist` for new files, and `GET /api/import/file-info?path=` when a new file's row is expanded. No loudness.

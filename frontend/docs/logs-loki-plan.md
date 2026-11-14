@@ -1,6 +1,6 @@
 # Logs on Loki: frontend plan
 
-Status: Draft, waiting for approval of `backend/docs/logs-loki-plan.md`
+Status: Done (verified 2026-11-15). Commit: frontend 3922e71; backend 7f94022, f8d515e.
 Companion to `backend/docs/logs-loki-plan.md` (read it first; §4.2 there defines the endpoint).
 Replaces the file-based parts of `docs/f11-logs-plan.md` (file select, file links, 404 handling, offset paging, total).
 Last updated: 2026-10-28

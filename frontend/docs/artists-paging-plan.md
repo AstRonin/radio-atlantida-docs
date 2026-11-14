@@ -1,5 +1,7 @@
 # Artists page paging, sort, and delete guard: frontend plan
 
+Status: Done (verified 2026-11-15). Commits: frontend d19ffef, dd7003c; backend 4ca646b.
+
 Depends on `backend/docs/artists-paging-plan.md`. The backend adds `sort` (`name`, `track_count`), `order`, `offset`, `limit` (1 to 500, default 100) to `GET /api/artists`, and `total` to its response. `GET /api/artists/{id}` already exists. The two changes are released together.
 
 ## Goal

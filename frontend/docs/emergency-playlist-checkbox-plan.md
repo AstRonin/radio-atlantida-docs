@@ -1,6 +1,6 @@
 # Plan — "Use as Emergency Playlist" Checkbox in the Playlist Form (radio-atlantida-frontend)
 
-Status: Written for the operator's review (2026-11-10); not approved, not started
+Status: Done (verified 2026-11-15). Commit: 28eb7f5. Backend counterpart: emergency-playlist-delete-guard (3ea6851).
 Based on: `docs/tech-design.md` (§8.6), backend setting `playout.emergency_playlist_id`
 Last updated: 2026-11-10
 

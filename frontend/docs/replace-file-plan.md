@@ -1,5 +1,7 @@
 # Replace track file: frontend plan
 
+Status: Done (verified 2026-11-15). Commits: frontend a9dc923; backend b03ec30.
+
 Companion to `backend/docs/replace-file-plan.md`. The backend part (endpoint, validation, in-use refusal, PUT without analysis fields) must be merged and its `api/openapi.json` regenerated first. The frontend then syncs the types with `npm run api:sync`.
 
 ## Goal

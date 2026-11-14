@@ -1,5 +1,7 @@
 # Collapse past empty hours in the grid: frontend plan
 
+Status: Done (verified 2026-11-15). Commit: ad728ba.
+
 ## Goal
 
 On the Grid page, an hour row of a week table takes almost no space when it is of no use any more: the hour has ended on every day of that week, and no clock was assigned to it on any of those days. Consecutive such hours merge into one thin row that the operator can expand. Everything else looks as it does now.

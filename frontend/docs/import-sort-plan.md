@@ -1,5 +1,7 @@
 # Import file table sort: frontend plan
 
+Status: Done (verified 2026-11-15). Commit: 3b970b4.
+
 ## Goal
 
 The file table on the Import page (`/import`) can be sorted by every column: File, Size, Modified, Status. The page opens sorted by File, ascending. Sorting happens in the browser; the backend does not change.

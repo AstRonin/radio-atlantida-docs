@@ -1,5 +1,7 @@
 # Track in use on the edit page: frontend plan
 
+Status: Done (verified 2026-11-15). Commits: frontend a811a49; backend 6cecdf6.
+
 Depends on `backend/docs/track-in-use-plan.md`. The backend adds `in_use` (boolean, nullable) to the track detail response `GET /api/tracks/{id}`. Lists keep it null.
 
 ## Goal
