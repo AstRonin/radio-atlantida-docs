@@ -24,6 +24,7 @@ This repository is the central copy of the project documents. Sources: `radio-at
 - `base.md`, `tech-design.md`: root. The backend/frontend version is canonical; it is also pushed to deploy.
 - `deploy-init-plan.md`: stored once in `deploy/docs/`. The deploy version is canonical and is pushed to backend and frontend `docs/`.
 - `rotation-long-horizon-plan.md`: stored once in `backend/docs/`. The backend version is canonical and is pushed to frontend `docs/` (decided 2026-11-14).
+- `grid-weekday-range-check-plan.md`, `started-hour-build-plan.md`, `track-pin-plan.md`, `track-pin-rule-plan.md`: intentionally kept in both `backend/docs/` and `frontend/docs/` (identical copies), so an agent in either source has them. Do not deduplicate; a change to one is pushed to the other (decided 2026-11-14).
 - `backend-init-plan.md`, `frontend-init-plan.md`: intentionally kept in their subfolders (`backend/docs/` + `deploy/docs/`, `frontend/docs/` + `deploy/docs/`), even though the copies are identical. Do not deduplicate.
 
 ## Task delegation
