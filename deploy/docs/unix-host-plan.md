@@ -164,7 +164,7 @@ Built on 2026-11-14 as code and tests, at the developer's request before the liv
 
 ### U5 — Documentation
 
-Done so far: runbook chapter 12 (Linux), `dry-run.md` §8 (the Linux VM dry run), `README.md`'s parts list; for macOS (written 2026-11-14, before any run on a Mac): runbook chapter 13 (install, start at boot, where the data lives, the "Never" box with `colima delete`, the voice check), `dry-run.md` §9 (not yet run), `README.md`'s platforms. Open: `deploy-init-plan.md`'s pointer to this plan; chapter 13 checked against the first real Mac.
+Done so far: runbook chapter 12 (Linux), `dry-run.md` §8 (the Linux VM dry run), `README.md`'s parts list; for macOS (written 2026-11-14, before any run on a Mac): runbook chapter 13 (install, start at boot, where the data lives, the "Never" box with `colima delete`, the voice check), `dry-run.md` §9 (not yet run), `README.md`'s platforms. `deploy-init-plan.md`'s pointer to this plan (header, §0, §1.1, §2; 2026-11-15). Open: chapter 13 checked against the first real Mac.
 
 Runbook: a "Host" chapter per platform (install, start at boot, where data lives, what must never be deleted: `/srv/radio/pgdata` on Linux, the Colima profile `radio-atlantida` on macOS — `colima delete` deletes the database like `wsl --unregister`), the shared chapters unchanged. `README.md`: the three platforms with Windows as the primary. `dry-run.md`: Linux and macOS sections. `deploy-init-plan.md`: a pointer to this plan.
 

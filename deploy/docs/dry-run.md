@@ -507,9 +507,12 @@ installed (`min_app_version` 1.0.0 again, runbook 9.2).
 
 ## 7. Clean up
 
-Delete the VM (`orb delete radio-dryrun`, UTM: delete, `limactl delete
-radio-dryrun`). Delete any production dump copied to the Mac after the
-rehearsal.
+Delete any production dump copied to the Mac after the rehearsal.
+
+The OrbStack machines `radio-dryrun` and `radio-linux` (section 8) are kept
+for later rehearsals by the developer's decision (2026-11-14): never delete
+or recreate them without asking. Only a VM made for a one-off run is
+deleted (`orb delete <name>`, UTM: delete, `limactl delete <name>`).
 
 ## 8. Linux host (install.sh)
 
